@@ -1,0 +1,626 @@
+{% extends "nav.html" %}
+
+{% block title %}Social Monitoring • EPICHECK{% endblock %}
+
+{% block extra_head %}
+<style>
+  :root{
+    --glass: rgba(255,255,255,.70);
+    --glass-dark: rgba(23,25,35,.65);
+    --blur: blur(12px);
+    --surface: #0b0f19;
+  }
+  @media (prefers-color-scheme: dark){
+    :root { --glass: rgba(20,22,30,.55); }
+    body{ background: #0b0f19; color: #e5e7eb; }
+  }
+
+  /* ===== Background (subtle, like index) ===== */
+  body {
+    min-height: 100vh;
+    background: #fff;
+  }
+  @media (prefers-color-scheme: dark){
+    body { background: var(--surface); }
+  }
+
+  /* ===== Reused index button styles (neutral) ===== */
+  .btn-plain{ background:#111; color:#fff; border:1px solid #111; border-radius:10px; font-weight:700; }
+  .btn-plain:hover{ background:#000; border-color:#000; color:#fff; }
+  .btn-outline-plain{ background:transparent; color:#111; border:1px solid #d1d5db; border-radius:10px; font-weight:700; }
+  .btn-outline-plain:hover{ background:#f8f9fb; border-color:#cbd5e1; color:#111; }
+  @media (prefers-color-scheme: dark){
+    .btn-plain{ background:#e5e7eb; color:#0b0f19; border-color:#e5e7eb; }
+    .btn-plain:hover{ background:#fff; border-color:#fff; color:#0b0f19; }
+    .btn-outline-plain{ color:#e5e7eb; border-color:#374151; }
+    .btn-outline-plain:hover{ background:#111827; border-color:#4b5563; color:#e5e7eb; }
+  }
+
+  /* ===== Shared section header (matches index) ===== */
+  .section-head{ text-align:center; max-width:880px; margin:0 auto 16px; }
+  .section-head .eyebrow{
+    font-size:.78rem; letter-spacing:.16em; text-transform:uppercase; color:#94a3b8;
+  }
+  @media (prefers-color-scheme: dark){ .section-head .eyebrow{ color:#64748b; } }
+  .section-head h2{
+    font-weight:800; line-height:1.15; margin:8px 0 10px;
+  }
+  .section-head .kicker{ color:#64748b; max-width:64ch; margin:0 auto; }
+  @media (prefers-color-scheme: dark){ .section-head .kicker{ color:#94a3b8; } }
+
+  /* ===== Glass card shell ===== */
+  .glass {
+    background: var(--glass);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border: 1px solid rgba(255,255,255,0.28);
+    border-radius: 18px;
+    box-shadow: 0 10px 28px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    .glass { background: var(--glass-dark); border-color: rgba(255,255,255,.08); box-shadow:none; }
+  }
+
+  /* ===== Sticky action bar ===== */
+  .action-bar { position: sticky; top: 12px; z-index: 20; border-radius: 18px; }
+  .search-xl { height: 56px; font-size: 1.05rem; border-radius: 14px; }
+
+  /* Segmented controls (match index neutrals) */
+  .segmented {
+    display:inline-flex; gap:6px; padding:6px; border-radius:999px; background: rgba(0,0,0,.06);
+  }
+  .segmented .seg { border-radius:999px; padding:8px 14px; border:0; font-weight:700; }
+  .segmented .seg.active { background:#111827; color:#fff; }
+  @media (prefers-color-scheme: dark){
+    .segmented { background: rgba(255,255,255,.08); }
+    .segmented .seg { color:#e5e7eb; background: transparent; border:1px solid #374151; }
+    .segmented .seg.active { background:#e5e7eb; color:#111827; border-color:transparent; }
+  }
+
+  /* ===== Post card ===== */
+  .post-card {
+    transition: transform .16s ease, box-shadow .16s ease, border-color .2s ease;
+    border: 1px solid rgba(0,0,0,.06);
+    background:#fff;
+    border-radius:14px;
+  }
+  .post-card:hover { transform: translateY(-2px); box-shadow: 0 18px 40px rgba(0,0,0,.08); }
+  @media (prefers-color-scheme: dark){
+    .post-card{ border-color:#1f2937; background:#0f172a; }
+  }
+  .tiny{font-size:.9rem}
+  .post-body{white-space:pre-wrap}
+  .chip{
+    display:inline-block; padding:2px 8px; border-radius:999px; font-size:.75rem; background: rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark){ .chip { background: rgba(255,255,255,.08); } }
+
+  /* Column section tags (muted, low color like index) */
+  .section-tag { border-top-left-radius:18px; border-top-right-radius:18px; padding: 12px 16px; font-weight:800; background:#f8fafc; border-bottom:1px solid #e5e7eb; }
+  @media (prefers-color-scheme: dark){ .section-tag{ background:#0f172a; border-bottom-color:#1f2937; } }
+  .valid-bg *{ color:#065f46 !important; }
+  .uncertain-bg *{ color:#92400e !important; }
+  .invalid-bg *{ color:#7f1d1d !important; }
+
+  /* Confidence bar (unchanged) */
+  .conf { --w: 0%; height: 8px; border-radius: 999px; overflow: hidden; background: rgba(0,0,0,.08); }
+  .conf > i { display:block; height: 100%; width: var(--w); background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981); }
+  @media (prefers-color-scheme: dark){ .conf { background: rgba(255,255,255,.12); } }
+
+  /* Badges */
+  .yt-badge { background: #ff0000 !important; }
+  .rd-badge { background: #ff4500 !important; }
+
+  /* ===== Modal — neutral & consistent with index ===== */
+  .modal-backdrop.show { backdrop-filter: blur(6px); background: rgba(10,12,18,.45); }
+  .modal-content.glass {
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,.18);
+    background: rgba(255,255,255,.75);
+    backdrop-filter: blur(10px);
+  }
+  @media (prefers-color-scheme: dark){
+    .modal-content.glass{ background: rgba(20,22,30,.75); border-color: rgba(255,255,255,.08); }
+  }
+
+  .modal-hero {
+    position: relative; padding: 22px 22px 18px; color: #e5e7eb;
+    background: linear-gradient(135deg,#111827, #1f2937);
+  }
+  .modal-hero h5 { margin: 0; font-weight: 800; letter-spacing: .2px; }
+  .modal-hero p  { margin: 6px 0 0; opacity: .9; }
+
+  .icon-chip {
+    display:inline-flex; align-items:center; justify-content:center;
+    width: 40px; height: 40px; border-radius: 12px;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.18);
+    margin-right: 10px;
+  }
+
+  .modal-body.modern { padding: 18px 20px 6px; }
+  .step-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0,1fr)); }
+  @media (max-width: 768px){ .step-grid{ grid-template-columns: 1fr; } }
+
+  .step {
+    border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px 14px; background:#fff;
+    display: flex; gap: 10px; align-items: start; transition: transform .15s ease, border-color .2s ease, box-shadow .2s ease;
+  }
+  .step:hover{ transform: translateY(-1px); box-shadow: 0 12px 24px rgba(0,0,0,.07); }
+  @media (prefers-color-scheme: dark){
+    .step{ background:#0f172a; border-color:#1f2937; }
+  }
+  .step i { font-size: 1.1rem; margin-top: 1px; }
+  .step h6 { margin: 0; font-weight: 800; font-size: .98rem; }
+  .step p  { margin: 4px 0 0; opacity: .85; font-size: .92rem; }
+
+  .tips { margin-top: 10px; display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 768px){ .tips{ grid-template-columns: 1fr; } }
+  .card-min { border-radius: 14px; border: 1px dashed #e5e7eb; background:#fafafa; padding: 12px 14px; }
+  @media (prefers-color-scheme: dark){ .card-min{ border-color:#374151; background:#0f172a; } }
+
+  .kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.85rem; padding:2px 8px; border-radius:8px;
+    border:1px solid #e5e7eb; background:#fff; box-shadow: inset 0 -1px 0 rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme: dark){ .kbd{ background:#111827; border-color:#374151; } }
+
+  .modal-footer.modern { border-top: 1px solid #e5e7eb; padding: 14px 18px 18px; }
+  @media (prefers-color-scheme: dark){ .modal-footer.modern{ border-color:#1f2937; } }
+
+  /* Loading overlay */
+  #loadingOverlay {
+    position: fixed; inset: 0; background: rgba(15,18,23,.55);
+    display: none; align-items: center; justify-content: center; z-index: 9999;
+    backdrop-filter: blur(4px);
+  }
+  .spinner { width: 64px; height: 64px; border: 6px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+
+  <!-- Header -->
+  <section class="container mt-4">
+    <div class="section-head">
+      <div class="eyebrow">Monitor</div>
+      <h2>Scan social posts and verify health claims</h2>
+      <p class="kicker">Search YouTube & Reddit, classify results, view confidence, and open citations quickly.</p>
+    </div>
+  </section>
+
+  <!-- Sticky action bar -->
+  <section class="container my-3">
+    <div class="glass action-bar p-3 p-md-4">
+      <button type="button"
+              class="btn btn-outline-plain rounded-circle position-absolute bottom-0 end-0 m-3"
+              data-bs-toggle="modal"
+              data-bs-target="#instructionModal"
+              aria-label="Instructions">
+        <i class="bi bi-question-lg"></i>
+      </button>
+  {% set all_posts = (results.valid or []) + (results.uncertain or []) + (results.invalid or []) %}
+{% set yt_count = all_posts | selectattr('platform', 'equalto', 'YouTube') | list | length %}
+{% set rd_count = all_posts | selectattr('platform', 'equalto', 'Reddit')  | list | length %}
+{% set total_count = all_posts | length %}
+
+      <form id="searchForm" method="post" class="row g-3 align-items-center">
+        <div class="col-12 col-lg-6">
+          <div class="input-group">
+            <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search"></i></span>
+            <input name="keywords" class="form-control search-xl border-start-0" placeholder="Type keywords — e.g. detox, garlic, weight loss" value="{{ keywords }}">
+          </div>
+        </div>
+
+        <!-- Source filters -->
+        <div class="col-12 col-lg-4 d-flex gap-2 justify-content-lg-center">
+          {% set sels = selected_sources or [] %}
+          <div class="segmented">
+            <input type="checkbox" id="src_yt" class="d-none" name="sources" value="youtube" {% if 'youtube' in sels or not sels %}checked{% endif %}>
+            <label class="seg {% if 'youtube' in sels or not sels %}active{% endif %}" for="src_yt"><i class="bi bi-youtube me-1"></i>YouTube</label>
+
+            <input type="checkbox" id="src_rd" class="d-none" name="sources" value="reddit" {% if 'reddit' in sels or not sels %}checked{% endif %}>
+            <label class="seg {% if 'reddit' in sels or not sels %}active{% endif %}" for="src_rd"><i class="bi bi-reddit me-1"></i>Reddit</label>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-2 d-grid">
+          <button id="searchBtn" class="btn btn-plain btn-lg">
+            <i class="bi bi-rocket-takeoff me-1"></i> Search
+          </button>
+        </div>
+
+        <!-- Verdict quick filter -->
+        <div class="col-12">
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <span class="text-muted tiny">Filter:</span>
+            <div class="segmented" id="verdictSeg">
+              <button type="button" class="seg active" data-v="all"><i class="bi bi-grid-1x2 me-1"></i>All</button>
+              <button type="button" class="seg" data-v="valid"><i class="bi bi-check-circle me-1"></i>Valid</button>
+              <button type="button" class="seg" data-v="uncertain"><i class="bi bi-question-circle me-1"></i>Uncertain</button>
+              <button type="button" class="seg" data-v="invalid"><i class="bi bi-x-circle me-1"></i>Invalid</button>
+            </div>
+
+          {% if sources_used %}
+            <div class="ms-auto tiny text-muted">
+              <span class="ms-2">{{ yt_count }} YouTube • {{ rd_count }} Reddit • {{ total_count }} total</span>
+            </div>
+          {% endif %}
+
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <main class="container my-3 mt-4">
+    <div class="row g-3" id="resultGrid">
+      <!-- VALID -->
+      <div class="col-12 col-lg-4 verdict-col" data-v="valid">
+        <div class="glass h-100">
+          <div class="section-tag valid-bg">
+            <span><i class="bi bi-check2-circle me-1"></i>Valid</span>
+          </div>
+          <div class="p-3">
+            {% if results.valid %}
+              {% for p in results.valid %}
+              {% set pct = ((p.credibility_score or 0) * 100) | round(0, 'floor') %}
+              <article class="post-card p-3 mb-3" data-platform="{{ p.platform|lower }}" data-verdict="valid">
+                <div class="d-flex justify-content-between tiny mb-1">
+                  <span>
+                    {% if p.platform == 'YouTube' %}
+                      <span class="badge yt-badge">YouTube</span>
+                    {% elif p.platform == 'Reddit' %}
+                      <span class="badge rd-badge">Reddit</span>
+                    {% else %}
+                      <span class="badge text-bg-secondary">{{ p.platform }}</span>
+                    {% endif %}
+                    <strong class="ms-2">{{ p.author }}</strong>
+                  </span>
+                  <span class="text-muted">{{ p.created_at.strftime('%Y-%m-%d') if p.created_at else '' }}</span>
+                </div>
+
+                <div class="post-body my-2">{{ p.text }}</div>
+
+                {% if p.transcript_excerpt %}
+                  <div class="tiny mb-2">
+                    <span class="chip"><i class="bi bi-chat-left-text me-1"></i>Transcript</span>
+                    <div class="text-muted mt-1">{{ p.transcript_excerpt }}</div>
+                  </div>
+                {% endif %}
+
+                <div class="tiny mb-2">
+                  <div class="d-flex justify-content-between">
+                    <span>Verdict: Valid</span>
+                    <span>{{ pct|int }}%</span>
+                  </div>
+                  <div class="conf"><i style="--w: {{ pct|int }}%"></i></div>
+                </div>
+
+                <div class="tiny text-muted">{{ p.explanation }}</div>
+                <div class="tiny mt-2">
+                  {% for c in p.citations %}
+                    <div>• <a href="{{ c.url }}" target="_blank" rel="noopener">{{ c.title }}</a></div>
+                  {% endfor %}
+                </div>
+                {% if p.url %}
+                  <a class="tiny d-inline-block mt-2" href="{{ p.url }}" target="_blank" rel="noopener">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>View Post
+                  </a>
+                {% endif %}
+              </article>
+              {% endfor %}
+            {% else %}
+              <p class="text-muted mb-0">No valid posts for this query.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- UNCERTAIN -->
+      <div class="col-12 col-lg-4 verdict-col" data-v="uncertain">
+        <div class="glass h-100">
+          <div class="section-tag uncertain-bg">
+            <span><i class="bi bi-question-circle me-1"></i>Uncertain</span>
+          </div>
+          <div class="p-3">
+            {% if results.uncertain %}
+              {% for p in results.uncertain %}
+              {% set pct = ((p.credibility_score or 0) * 100) | round(0, 'floor') %}
+              <article class="post-card p-3 mb-3" data-platform="{{ p.platform|lower }}" data-verdict="uncertain">
+                <div class="d-flex justify-content-between tiny mb-1">
+                  <span>
+                    {% if p.platform == 'YouTube' %}
+                      <span class="badge yt-badge">YouTube</span>
+                    {% elif p.platform == 'Reddit' %}
+                      <span class="badge rd-badge">Reddit</span>
+                    {% else %}
+                      <span class="badge text-bg-secondary">{{ p.platform }}</span>
+                    {% endif %}
+                    <strong class="ms-2">{{ p.author }}</strong>
+                  </span>
+                  <span class="text-muted">{{ p.created_at.strftime('%Y-%m-%d') if p.created_at else '' }}</span>
+                </div>
+
+                <div class="post-body my-2">{{ p.text }}</div>
+
+                {% if p.transcript_excerpt %}
+                  <div class="tiny mb-2">
+                    <span class="chip"><i class="bi bi-chat-left-text me-1"></i>Transcript</span>
+                    <div class="text-muted mt-1">{{ p.transcript_excerpt }}</div>
+                  </div>
+                {% endif %}
+
+                <div class="tiny mb-2">
+                  <div class="d-flex justify-content-between">
+                    <span>Verdict: Uncertain</span>
+                    <span>{{ pct|int }}%</span>
+                  </div>
+                  <div class="conf"><i style="--w: {{ pct|int }}%"></i></div>
+                </div>
+
+                <div class="tiny text-muted">{{ p.explanation }}</div>
+                <div class="tiny mt-2">
+                  {% for c in p.citations %}
+                    <div>• <a href="{{ c.url }}" target="_blank" rel="noopener">{{ c.title }}</a></div>
+                  {% endfor %}
+                </div>
+                {% if p.url %}
+                  <a class="tiny d-inline-block mt-2" href="{{ p.url }}" target="_blank" rel="noopener">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>View Post
+                  </a>
+                {% endif %}
+              </article>
+              {% endfor %}
+            {% else %}
+              <p class="text-muted mb-0">No uncertain posts for this query.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- INVALID -->
+      <div class="col-12 col-lg-4 verdict-col" data-v="invalid">
+        <div class="glass h-100">
+          <div class="section-tag invalid-bg">
+            <span><i class="bi bi-x-circle me-1"></i>Invalid</span>
+          </div>
+          <div class="p-3">
+            {% if results.invalid %}
+              {% for p in results.invalid %}
+              {% set pct = ((p.credibility_score or 0) * 100) | round(0, 'floor') %}
+              <article class="post-card p-3 mb-3" data-platform="{{ p.platform|lower }}" data-verdict="invalid">
+                <div class="d-flex justify-content-between tiny mb-1">
+                  <span>
+                    {% if p.platform == 'YouTube' %}
+                      <span class="badge yt-badge">YouTube</span>
+                    {% elif p.platform == 'Reddit' %}
+                      <span class="badge rd-badge">Reddit</span>
+                    {% else %}
+                      <span class="badge text-bg-secondary">{{ p.platform }}</span>
+                    {% endif %}
+                    <strong class="ms-2">{{ p.author }}</strong>
+                  </span>
+                  <span class="text-muted">{{ p.created_at.strftime('%Y-%m-%d') if p.created_at else '' }}</span>
+                </div>
+
+                <div class="post-body my-2">{{ p.text }}</div>
+
+                {% if p.transcript_excerpt %}
+                  <div class="tiny mb-2">
+                    <span class="chip"><i class="bi bi-chat-left-text me-1"></i>Transcript</span>
+                    <div class="text-muted mt-1">{{ p.transcript_excerpt }}</div>
+                  </div>
+                {% endif %}
+
+                <div class="tiny mb-2">
+                  <div class="d-flex justify-content-between">
+                    <span>Verdict: Invalid</span>
+                    <span>{{ pct|int }}%</span>
+                  </div>
+                  <div class="conf"><i style="--w: {{ pct|int }}%"></i></div>
+                </div>
+
+                <div class="tiny text-muted">{{ p.explanation }}</div>
+                <div class="tiny mt-2">
+                  {% for c in p.citations %}
+                    <div>• <a href="{{ c.url }}" target="_blank" rel="noopener">{{ c.title }}</a></div>
+                  {% endfor %}
+                </div>
+                {% if p.url %}
+                  <a class="tiny d-inline-block mt-2" href="{{ p.url }}" target="_blank" rel="noopener">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>View Post
+                  </a>
+                {% endif %}
+              </article>
+              {% endfor %}
+            {% else %}
+              <p class="text-muted mb-0">No invalid posts for this query.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+<!-- ===== Instruction Modal (neutral) ===== -->
+<div class="modal fade" id="instructionModal" tabindex="-1" aria-labelledby="instructionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content glass">
+
+      <div class="modal-hero">
+        <div class="d-flex align-items-center">
+          <span class="icon-chip"><i class="bi bi-magic"></i></span>
+          <div>
+            <h5 id="instructionModalLabel">EPICHECK — Verify Health Claims Faster</h5>
+            <p class="mb-0">Search YouTube & Reddit, classify posts, and see credibility at a glance.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-body modern">
+        <div class="step-grid">
+          <div class="step">
+            <i class="bi bi-type"></i>
+            <div>
+              <h6>1) Enter Keywords</h6>
+              <p>Try phrases like <em>“garlic for weight loss”</em> or <em>“detox tea”</em>.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <i class="bi bi-funnel"></i>
+            <div>
+              <h6>2) Choose Sources</h6>
+              <p>Toggle YouTube/Reddit; the UI remembers your last choice.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <i class="bi bi-rocket-takeoff"></i>
+            <div>
+              <h6>3) Run Search</h6>
+              <p>EPICHECK pulls posts, transcripts, and citations into clean cards.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <i class="bi bi-filter-circle"></i>
+            <div>
+              <h6>4) Filter by Verdict</h6>
+              <p>Switch between <strong>Valid</strong>, <strong>Uncertain</strong>, or <strong>Invalid</strong>.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="tips">
+          <div class="card-min">
+            <div class="fw-bold mb-2"><i class="bi bi-lightning-charge me-1"></i> Power Tips</div>
+            <ul class="mb-0 small ps-3">
+              <li>Open citations from any card to view sources.</li>
+              <li>Confidence bar reflects the credibility score.</li>
+              <li>Toggle sources to quickly refine visible posts.</li>
+            </ul>
+          </div>
+
+          <div class="card-min">
+            <div class="fw-bold mb-2"><i class="bi bi-keyboard me-1"></i> Shortcuts</div>
+            <div class="small">
+              <span class="kbd">/</span> Focus search
+              <span class="ms-3 kbd">1</span> Valid
+              <span class="ms-1 kbd">2</span> Uncertain
+              <span class="ms-1 kbd">3</span> Invalid
+            </div>
+            <div class="text-muted small mt-2">Shortcuts are active while this page is focused.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer modern d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-plain" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-plain" data-bs-dismiss="modal" id="startSearch">
+          Start searching
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+  <!-- Loading overlay -->
+  <div id="loadingOverlay"><div class="spinner"></div></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Loading overlay
+  const form = document.getElementById('searchForm');
+  const btn  = document.getElementById('searchBtn');
+  const overlay = document.getElementById('loadingOverlay');
+  if (form) {
+    form.addEventListener('submit', () => {
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Searching...';
+      }
+      overlay.style.display = 'flex';
+    });
+  }
+
+  // Toggle segmented "active" styles for source pills
+  for (const lab of document.querySelectorAll('.segmented label')) {
+    lab.addEventListener('click', () => {
+      const input = document.getElementById(lab.getAttribute('for'));
+      setTimeout(() => lab.classList.toggle('active', input.checked), 0);
+    });
+  }
+
+  // Client-side verdict filter
+  const verdictSeg = document.getElementById('verdictSeg');
+  if (verdictSeg) {
+    verdictSeg.addEventListener('click', (e) => {
+      const b = e.target.closest('.seg'); if (!b) return;
+      verdictSeg.querySelectorAll('.seg').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      const v = b.dataset.v; // all | valid | uncertain | invalid
+      document.querySelectorAll('.verdict-col').forEach(col => {
+        col.style.display = (v === 'all' || col.dataset.v === v) ? '' : 'none';
+      });
+    });
+  }
+
+  // Platform pill filter (no network call)
+  function applyPlatformFilter() {
+    const showYT = document.getElementById('src_yt')?.checked;
+    const showRD = document.getElementById('src_rd')?.checked;
+    document.querySelectorAll('.post-card').forEach(card => {
+      const p = (card.dataset.platform || '').toLowerCase();
+      const visible =
+        (p === 'youtube' && showYT) ||
+        (p === 'reddit' && showRD) ||
+        (p !== 'youtube' && p !== 'reddit');
+      card.style.display = visible ? '' : 'none';
+    });
+  }
+  document.addEventListener('DOMContentLoaded', applyPlatformFilter);
+  document.querySelectorAll('input[name="sources"]').forEach(chk => {
+    chk.addEventListener('change', () => {
+      const lab = document.querySelector(`label[for="${chk.id}"]`);
+      if (lab) lab.classList.toggle('active', chk.checked);
+      applyPlatformFilter();
+    });
+  });
+
+  // Modal CTA -> focus search field
+  const startBtn = document.getElementById('startSearch');
+  if (startBtn) startBtn.addEventListener('click', () => {
+    document.querySelector('input[name="keywords"]')?.focus();
+  });
+</script>
+<script>
+document.addEventListener('keydown', function(e) {
+  const verdictSeg = document.getElementById('verdictSeg');
+  if (!verdictSeg) return;
+
+  // Focus search when pressing "/"
+  if (e.key === '/') {
+    e.preventDefault();
+    document.querySelector('input[name="keywords"]')?.focus();
+    return;
+  }
+
+  // Switch verdict filter with 1/2/3
+  if (e.key === '1') {
+    verdictSeg.querySelector('[data-v="valid"]')?.click();
+  }
+  if (e.key === '2') {
+    verdictSeg.querySelector('[data-v="uncertain"]')?.click();
+  }
+  if (e.key === '3') {
+    verdictSeg.querySelector('[data-v="invalid"]')?.click();
+  }
+});
+</script>
+
+{% endblock %}
